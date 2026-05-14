@@ -1,0 +1,79 @@
+# ============================================================
+# AuraBot — Production Requirements
+# Python 3.12+
+# ============================================================
+
+# --- Core Telegram ---
+pyrogram==2.0.106
+TgCrypto==1.2.5
+PyTgCalls==3.0.0.dev31
+
+# --- Async Runtime ---
+uvloop==0.19.0
+aiohttp==3.9.5
+aiofiles==23.2.1
+asyncio-throttle==1.0.2
+
+# --- Web Framework ---
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+websockets==12.0
+python-multipart==0.0.9
+httpx==0.27.0
+
+# --- Database ---
+motor==3.4.0          # async MongoDB
+pymongo==4.7.2
+redis[hiredis]==5.0.4
+aioredis==2.0.1
+
+# --- Media Processing ---
+yt-dlp==2024.5.27
+ffmpeg-python==0.2.0
+pillow==10.3.0
+cairosvg==2.7.1
+imageio==2.34.1
+mutagen==1.47.0
+
+# --- Audio / Streaming ---
+pydub==0.25.1
+soundfile==0.12.1
+
+# --- Caching & Queues ---
+cachetools==5.3.3
+diskcache==5.6.3
+
+# --- Data Models ---
+pydantic==2.7.1
+pydantic-settings==2.2.1
+
+# --- Utilities ---
+python-dotenv==1.0.1
+loguru==0.7.2
+orjson==3.10.3
+tenacity==8.3.0
+humanize==4.9.0
+cryptography==42.0.7
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# --- Monitoring ---
+prometheus-client==0.20.0
+opentelemetry-sdk==1.24.0
+opentelemetry-instrumentation-fastapi==0.45b0
+structlog==24.1.0
+
+# --- AI / ML (optional, lazy-loaded) ---
+openai==1.30.1
+anthropic==0.26.1
+sentence-transformers==3.0.0
+numpy==1.26.4
+
+# --- Sticker / Image ---
+qrcode[pil]==7.4.2
+svgwrite==1.4.3
+
+# --- Testing ---
+pytest==8.2.1
+pytest-asyncio==0.23.7
+httpx==0.27.0
