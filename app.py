@@ -1,10 +1,7 @@
 from __future__ import annotations
 import os
 
-if not os.path.exists("/tmp/ai_installed"):
-    os.system("pip install torch --index-url https://download.pytorch.org/whl/cpu")
-    os.system("pip install sentence-transformers --no-cache-dir")
-    open("/tmp/ai_installed", "w").close()
+
 """
 AuraBot — Main Entrypoint
 Bootstraps the Pyrogram client, loads plugins, and manages lifecycle.
