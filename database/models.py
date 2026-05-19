@@ -31,6 +31,18 @@ class UserProfile(BaseModel):
     username: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+class ChatSettings(BaseModel):
+    chat_id: int
+
+    loop: bool = False
+    shuffle: bool = False
+    autoplay: bool = True
+    admin_only: bool = False
+
+    volume: int = 100
+    quality: str = "high"
+
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class WaifuRarity(str, Enum):
     COMMON = "common"
