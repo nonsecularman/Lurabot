@@ -17,9 +17,6 @@ from core.logger import get_logger, setup_logger
 from core.startup import startup, shutdown
 from core.plugin_loader import load_all_plugins
 
-# Use uvloop for maximum async throughput
-uvloop.install()
-
 setup_logger()
 log = get_logger("app")
 
