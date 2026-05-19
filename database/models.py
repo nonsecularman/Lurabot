@@ -25,6 +25,12 @@ class StreamQuality(str, Enum):
     MEDIUM = "medium"
     HIGH = "high"
 
+class UserProfile(BaseModel):
+    user_id: int
+    name: Optional[str] = None
+    username: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
 
 class WaifuRarity(str, Enum):
     COMMON = "common"
