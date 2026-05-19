@@ -11,10 +11,7 @@ from typing import Dict, Optional, Set
 
 from pytgcalls import PyTgCalls
 from pytgcalls.types import MediaStream, AudioQuality
-from pytgcalls.exceptions import (
-    GroupCallNotFound,
-    NotInCallError,
-)
+from pytgcalls.exceptions import NotInCallError
 
 from config import cfg
 from core.assistant_manager import assistant_manager, AssistantAccount
@@ -30,10 +27,6 @@ log = get_logger("music.player")
 
 
 class MusicPlayer:
-    """
-    Top-level coordinator for all voice chat music sessions.
-    One PyTgCalls instance per assistant account.
-    """
 
     def __init__(self) -> None:
         self._calls: Dict[str, PyTgCalls] = {}
@@ -41,23 +34,38 @@ class MusicPlayer:
         self._paused: Set[int] = set()
 
     async def start(self) -> None:
+
         for acc in assistant_manager._accounts:
+
             if acc.is_ready and acc.client:
+
                 call = PyTgCalls(acc.client)
+
                 await call.start()
+
                 self._calls[str(acc.index)] = call
-                log.info(f"PyTgCalls started for assistant [{acc.index}]")
+
+                log.info(
+                    f"PyTgCalls started for assistant [{acc.index}]"
+                )
 
     async def stop(self) -> None:
+
         await ffmpeg_engine.stop_all()
 
         for call in self._calls.values():
+
             try:
                 await call.stop()
+
             except Exception:
                 pass
 
-    def _get_call(self, assistant_id: str) -> Optional[PyTgCalls]:
+    def _get_call(
+        self,
+        assistant_id: str
+    ) -> Optional[PyTgCalls]:
+
         return self._calls.get(str(assistant_id))
 
     async def play(
@@ -70,8 +78,13 @@ class MusicPlayer:
     ) -> None:
 
         if self.is_active(chat_id) and not force:
+
             length = await music_queue.add(chat_id, track)
-            log.info(f"[{chat_id}] Queued: {track.title} (pos #{length})")
+
+            log.info(
+                f"[{chat_id}] Queued: {track.title} (pos #{length})"
+            )
+
             return
 
         state = await music_queue.get_or_create_state(chat_id)
@@ -79,7 +92,9 @@ class MusicPlayer:
         acc = await assistant_manager.join_voice_chat(chat_id)
 
         if not acc:
-            raise RuntimeError("No available assistant to join voice chat.")
+            raise RuntimeError(
+                "No available assistant to join voice chat."
+            )
 
         proc = await ffmpeg_engine.create_stream(
             chat_id,
@@ -98,6 +113,7 @@ class MusicPlayer:
             )
 
         try:
+
             await call.play(
                 chat_id,
                 MediaStream(
@@ -121,13 +137,16 @@ class MusicPlayer:
             started_at=datetime.utcnow(),
         )
 
-        log.success(f"[{chat_id}] ▶ Playing: {track.title}")
+        log.success(
+            f"[{chat_id}] ▶ Playing: {track.title}"
+        )
 
         asyncio.create_task(
             self._record_history(chat_id, track)
         )
 
         if track.added_by:
+
             asyncio.create_task(
                 user_repo.add_xp(track.added_by, 5)
             )
@@ -158,11 +177,15 @@ class MusicPlayer:
 
         return track
 
-    async def skip(self, chat_id: int) -> Optional[Track]:
+    async def skip(
+        self,
+        chat_id: int
+    ) -> Optional[Track]:
 
         next_track = await music_queue.get_next(chat_id)
 
         if next_track:
+
             await self.play(
                 chat_id,
                 next_track,
@@ -170,11 +193,15 @@ class MusicPlayer:
             )
 
         else:
+
             await self.stop_session(chat_id)
 
         return next_track
 
-    async def pause(self, chat_id: int) -> bool:
+    async def pause(
+        self,
+        chat_id: int
+    ) -> bool:
 
         state = await music_queue.get_state(chat_id)
 
@@ -187,6 +214,7 @@ class MusicPlayer:
             return False
 
         try:
+
             await call.pause_stream(chat_id)
 
             self._paused.add(chat_id)
@@ -202,7 +230,10 @@ class MusicPlayer:
         except NotInCallError:
             return False
 
-    async def resume(self, chat_id: int) -> bool:
+    async def resume(
+        self,
+        chat_id: int
+    ) -> bool:
 
         state = await music_queue.get_state(chat_id)
 
@@ -215,6 +246,7 @@ class MusicPlayer:
             return False
 
         try:
+
             await call.resume_stream(chat_id)
 
             self._paused.discard(chat_id)
@@ -230,7 +262,10 @@ class MusicPlayer:
         except NotInCallError:
             return False
 
-    async def stop_session(self, chat_id: int) -> None:
+    async def stop_session(
+        self,
+        chat_id: int
+    ) -> None:
 
         state = await music_queue.get_state(chat_id)
 
@@ -239,13 +274,11 @@ class MusicPlayer:
             call = self._get_call(state.assistant_id)
 
             if call:
+
                 try:
                     await call.leave_group_call(chat_id)
 
-                except (
-                    NotInCallError,
-                    GroupCallNotFound
-                ):
+                except Exception:
                     pass
 
         await ffmpeg_engine.stop(chat_id)
@@ -259,7 +292,11 @@ class MusicPlayer:
 
         log.info(f"[{chat_id}] Session stopped.")
 
-    async def seek(self, chat_id: int, seconds: int) -> bool:
+    async def seek(
+        self,
+        chat_id: int,
+        seconds: int
+    ) -> bool:
 
         state = await music_queue.get_state(chat_id)
 
@@ -275,13 +312,18 @@ class MusicPlayer:
 
         return True
 
-    async def set_volume(self, chat_id: int, volume: int) -> None:
+    async def set_volume(
+        self,
+        chat_id: int,
+        volume: int
+    ) -> None:
 
         await music_queue.set_volume(chat_id, volume)
 
         state = await music_queue.get_state(chat_id)
 
         if state and state.current:
+
             await self.play(
                 chat_id,
                 state.current,
@@ -297,9 +339,11 @@ class MusicPlayer:
         state = await music_queue.get_or_create_state(chat_id)
 
         if audio_filter == AudioFilter.NONE:
+
             state.filters = []
 
         elif audio_filter not in state.filters:
+
             state.filters.append(audio_filter)
 
         await music_queue.update_state(
@@ -308,6 +352,7 @@ class MusicPlayer:
         )
 
         if state.current:
+
             await self.play(
                 chat_id,
                 state.current,
@@ -322,7 +367,10 @@ class MusicPlayer:
 
         await music_queue.set_loop(chat_id, mode)
 
-    async def on_stream_end(self, chat_id: int) -> None:
+    async def on_stream_end(
+        self,
+        chat_id: int
+    ) -> None:
 
         next_track = await music_queue.get_next(chat_id)
 
@@ -345,6 +393,7 @@ class MusicPlayer:
             rec = await autoplay.get_recommendation(chat_id)
 
             if rec:
+
                 await self.play(
                     chat_id,
                     rec,
@@ -352,12 +401,21 @@ class MusicPlayer:
                 )
 
             else:
+
                 await self.stop_session(chat_id)
 
-    def is_active(self, chat_id: int) -> bool:
+    def is_active(
+        self,
+        chat_id: int
+    ) -> bool:
+
         return chat_id in self._active
 
-    def is_paused(self, chat_id: int) -> bool:
+    def is_paused(
+        self,
+        chat_id: int
+    ) -> bool:
+
         return chat_id in self._paused
 
     async def now_playing(
@@ -377,6 +435,7 @@ class MusicPlayer:
         from datetime import datetime
 
         await get_collection("play_history").insert_one({
+
             "user_id": track.added_by,
             "chat_id": chat_id,
             "track_id": track.track_id,
@@ -384,6 +443,7 @@ class MusicPlayer:
             "artist": track.artist,
             "source": track.source,
             "played_at": datetime.utcnow(),
+
         })
 
 
