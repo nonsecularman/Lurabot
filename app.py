@@ -11,7 +11,6 @@ import asyncio
 import signal
 import sys
 
-import uvloop
 
 from config import cfg
 from core.logger import get_logger, setup_logger
