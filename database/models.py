@@ -113,3 +113,19 @@ class QueueState(BaseModel):
     filters: List[AudioFilter] = []
 
     started_at: Optional[datetime] = None
+
+class WaifuCard(BaseModel):
+
+    card_id: str
+
+    name: str
+
+    rarity: WaifuRarity = WaifuRarity.COMMON
+
+    image_url: Optional[str] = None
+
+    owner_id: Optional[int] = None
+
+    anime: Optional[str] = None
+
+    claimed_at: datetime = Field(default_factory=datetime.utcnow)
