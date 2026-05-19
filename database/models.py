@@ -51,4 +51,4 @@ class Track(BaseModel):
     track_id: str
     title: str
     artist: Optional[str] = None
-    album: Optional[str] =
+    album: Optional[str] =  None
