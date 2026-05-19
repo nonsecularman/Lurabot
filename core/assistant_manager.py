@@ -96,11 +96,11 @@ class AssistantManager:
         try:
 
             acc.client = Client(
-                name=f"assistant_{index}",
-                api_id=cfg.API_ID,
-                api_hash=cfg.API_HASH,
-                session_string=session,
-                no_updates=True,
+    name=f"assistant_{index}",
+    api_id=cfg.API_ID,
+    api_hash=cfg.API_HASH,
+    session_string=session,
+            
             )
 
             await acc.client.start()
