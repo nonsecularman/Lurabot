@@ -6,11 +6,12 @@ Manages a pool of Pyrogram assistant accounts for voice chat sessions.
 from __future__ import annotations
 
 import asyncio
+import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from pyrogram import Client
-from pyrogram.errors import FloodWait, UserAlreadyParticipant
+from pyrogram.errors import FloodWait
 
 from config import cfg
 from core.logger import get_logger
@@ -30,7 +31,6 @@ class AssistantAccount:
 
     @property
     def is_available(self) -> bool:
-        import time
         return self.is_ready and time.time() > self.flood_until
 
     @property
@@ -42,10 +42,10 @@ class AssistantManager:
 
     def __init__(self) -> None:
         self._accounts: List[AssistantAccount] = []
-        self._chat_map: Dict[int, int] = {}
+        self._chat_map: Dict[int, AssistantAccount] = {}
         self._lock = asyncio.Lock()
 
-    # ── Start ─────────────────────────────────────────────
+    # ─────────────────────────────────────────
 
     async def start(self) -> None:
 
@@ -61,7 +61,8 @@ class AssistantManager:
         await asyncio.gather(*tasks, return_exceptions=True)
 
         ready = sum(
-            1 for a in self._accounts if a.is_ready
+            1 for a in self._accounts
+            if a.is_ready
         )
 
         log.success(
@@ -82,6 +83,8 @@ class AssistantManager:
 
         log.info("All assistant accounts stopped.")
 
+    # ─────────────────────────────────────────
+
     async def _init_account(
         self,
         index: int,
@@ -96,11 +99,10 @@ class AssistantManager:
         try:
 
             acc.client = Client(
-    name=f"assistant_{index}",
-    api_id=cfg.API_ID,
-    api_hash=cfg.API_HASH,
-    session_string=session,
-            
+                name=f"assistant_{index}",
+                api_id=cfg.API_ID,
+                api_hash=cfg.API_HASH,
+                session_string=session,
             )
 
             await acc.client.start()
@@ -121,7 +123,7 @@ class AssistantManager:
                 f"Assistant [{index}] failed to start: {e}"
             )
 
-    # ── Assignment ────────────────────────────────────────
+    # ─────────────────────────────────────────
 
     async def get_assistant(
         self,
@@ -130,17 +132,17 @@ class AssistantManager:
 
         async with self._lock:
 
+            # Existing assistant
             if chat_id in self._chat_map:
 
-                idx = self._chat_map[chat_id]
-
-                acc = self._accounts[idx]
+                acc = self._chat_map[chat_id]
 
                 if acc.is_available:
                     return acc
 
                 del self._chat_map[chat_id]
 
+            # Available assistants
             available = [
                 a for a in self._accounts
                 if a.is_available
@@ -152,22 +154,25 @@ class AssistantManager:
 
                 return None
 
+            # Lowest load assistant
             chosen = min(
                 available,
                 key=lambda a: a.load
             )
 
-            self._chat_map[chat_id] = chosen.index
+            self._chat_map[chat_id] = chosen
 
             chosen.active_calls += 1
 
             chosen.assigned_chats[chat_id] = True
 
-            log.debug(
+            log.info(
                 f"Assigned assistant [{chosen.index}] to chat {chat_id}"
             )
 
             return chosen
+
+    # ─────────────────────────────────────────
 
     async def release_assistant(
         self,
@@ -178,9 +183,7 @@ class AssistantManager:
 
             if chat_id in self._chat_map:
 
-                idx = self._chat_map.pop(chat_id)
-
-                acc = self._accounts[idx]
+                acc = self._chat_map.pop(chat_id)
 
                 acc.active_calls = max(
                     0,
@@ -192,35 +195,40 @@ class AssistantManager:
                     None
                 )
 
+    # ─────────────────────────────────────────
+
     async def handle_floodwait(
         self,
         index: int,
         seconds: int
     ) -> None:
 
-        import time
-
         async with self._lock:
 
-            acc = self._accounts[index]
+            for acc in self._accounts:
 
-            acc.flood_until = time.time() + seconds + 2
+                if acc.index == index:
 
-            log.warning(
-                f"Assistant [{index}] flooded for {seconds}s."
-            )
+                    acc.flood_until = (
+                        time.time() + seconds + 2
+                    )
 
-            affected = [
-                cid
-                for cid, idx in self._chat_map.items()
-                if idx == index
-            ]
+                    log.warning(
+                        f"Assistant [{index}] flooded for {seconds}s."
+                    )
 
-            for chat_id in affected:
+                    affected = [
+                        cid
+                        for cid, a in self._chat_map.items()
+                        if a.index == index
+                    ]
 
-                del self._chat_map[chat_id]
+                    for chat_id in affected:
+                        del self._chat_map[chat_id]
 
-    # ── Join Voice Chat ───────────────────────────────────
+                    break
+
+    # ─────────────────────────────────────────
 
     async def join_voice_chat(
         self,
@@ -234,11 +242,10 @@ class AssistantManager:
 
         try:
 
-            # Auto join group
-            await acc.client.join_chat(chat_id)
+            # Check if assistant is in group
+            await acc.client.get_chat(chat_id)
 
-        except UserAlreadyParticipant:
-            pass
+            return acc
 
         except FloodWait as fw:
 
@@ -251,30 +258,22 @@ class AssistantManager:
 
         except Exception as e:
 
-            import traceback
-
-            traceback.print_exc()
-
             log.error(
-                f"Assistant [{acc.index}] could not join {chat_id}: {e}"
+                f"Assistant [{acc.index}] could not access {chat_id}: {e}"
             )
 
             return None
 
-        return acc
+    # ─────────────────────────────────────────
 
     async def leave_voice_chat(
         self,
         chat_id: int
     ) -> None:
 
-        acc = await self.get_assistant(chat_id)
+        await self.release_assistant(chat_id)
 
-        if acc:
-
-            await self.release_assistant(chat_id)
-
-    # ── Status ────────────────────────────────────────────
+    # ─────────────────────────────────────────
 
     def status(self) -> dict:
 
