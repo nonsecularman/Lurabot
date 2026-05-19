@@ -6,7 +6,7 @@
 # --- Core Telegram ---
 pyrogram==2.0.106
 TgCrypto==1.2.5
-py-tgcalls==2.2.12
+pytgcalls==3.0.0.dev24
 
 # --- Async Runtime ---
 uvloop==0.19.0
