@@ -86,7 +86,7 @@ class AssistantManager:
                 session_string=session,
                 no_updates=True,
             )
-            await acc.client.start()
+            await acc.client.join_chat(chat_id)
             me = await acc.client.get_me()
             acc.is_ready = True
             self._accounts.append(acc)
