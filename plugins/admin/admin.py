@@ -220,12 +220,12 @@ I am **AuraBot**, an advanced Telegram music & management bot designed for power
                 [
                     InlineKeyboardButton(
                         "👤 Owner",
-                        url="https://t.me/YOUR_USERNAME"
+                        url=cfg.YOUR_OWNER
                     ),
 
                     InlineKeyboardButton(
                         "💬 Support",
-                        url="https://t.me/YOUR_SUPPORT"
+                        url=cfg.YOUR_SUPPORT
                     ),
                 ],
             ]
