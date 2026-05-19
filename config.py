@@ -25,7 +25,8 @@ class Settings(BaseSettings):
     API_ID: int
     API_HASH: str
     BOT_USERNAME: str = "AuraBot"
-
+    YOUR_OWNER: str = "https://t.me/Unknownaura"
+    YOUR_SUPPORT: str = "https://t.me/BotsGrill"
     # ── Assistant Accounts (comma-separated session strings) ───
     ASSISTANT_SESSIONS: List[str] = []
 
