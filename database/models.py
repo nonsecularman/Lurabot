@@ -1,3 +1,4 @@
+"""
 AuraBot — Data Models
 Pydantic v2 models for all domain entities.
 """
